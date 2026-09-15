@@ -1,9 +1,13 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using NZWalks.API.CustomActionFilters;
 using NZWalks.API.Data;
 using NZWalks.API.Models.Domain;
-using NZWalks.API.Mapper;
 using NZWalks.API.Models.DTO.Region;
+using NZWalks.API.Repository;
+using System.Text.Json;
 
 namespace NZWalks.API.Controllers
 {
@@ -13,24 +17,43 @@ namespace NZWalks.API.Controllers
     {
 
         private readonly NZWalksDbContext _dbContext;
+        private readonly IRegionRepository _regionRepository;
+        private readonly IMapper _mapper;
+        private readonly ILogger<RegionController> _logger;
 
-        public RegionController(NZWalksDbContext dbContext)
+        public RegionController(
+            NZWalksDbContext dbContext, 
+            IRegionRepository regionRepository, 
+            IMapper mapper,
+            ILogger<RegionController> logger)
         {
             this._dbContext = dbContext;
+            this._regionRepository = regionRepository;
+            this._mapper = mapper;
+            this._logger = logger;
         }
 
         // GET ALL REGIONS
         // GET https://localhost:portnumber/api/regions
         [HttpGet]
-        public IActionResult GetAll()
+        [Authorize(Roles = "Reader")]
+        public async Task<IActionResult> GetAll()
         {
-            List<Region> regions = _dbContext.Regions.ToList();
+            _logger.LogInformation("Get All method was invoked");
+            _logger.LogWarning("This is warning log");
+            _logger.LogError("This is error log");
+
+            var regions = await _regionRepository.GetAllAsync();
+
+            _logger.LogInformation($"Finished Get All method request with data: " +
+                $"{JsonSerializer.Serialize(regions)}"
+            );
 
             // Mapping to dto and return
+            // _mapper.Map<Kiểu dữ liệu trả về>(Kiểu dữ liệu ban đầu);
             return Ok(
-                regions
-                .Select(region => RegionMapper.ToResponse(region))
-                .ToList()
+               _mapper
+               .Map<List<RegionResponse>>(regions)
             );
         }
 
@@ -38,11 +61,10 @@ namespace NZWalks.API.Controllers
         // GET https://localhost:portnumber/api/regions/{id}
         [HttpGet]
         [Route("{id:Guid}")]
-        public IActionResult GetById([FromRoute] Guid id)
+        [Authorize(Roles = "Reader")]
+        public async Task<IActionResult> GetById([FromRoute] Guid id)
         {
-            // Dùng Find (Find chỉ tìm dựa vào Primary Key)
-            Region? region = _dbContext.Regions.Find(id);
-            // Region? region = _dbContext.Regions.FirstOrDefault(x => x.Code == code)
+            Region? region = await _regionRepository.GetById(id);
 
             // Check region null
             if (region == null)
@@ -51,23 +73,24 @@ namespace NZWalks.API.Controllers
             }
 
             return Ok(
-                RegionMapper.ToResponse(region) 
+                _mapper
+                .Map<RegionResponse>(region)
             );
         }
 
         // POST CREATE NEW REGION
         // POST https://localhost:portnumber/regions
         [HttpPost]
-        public IActionResult Create([FromBody] CreateRegionRequest createRegionRequest) {
+        [ValidateModel]
+        [Authorize(Roles = "Writer")]
+        public async Task<IActionResult> Create([FromBody] CreateRegionRequest createRegionRequest) {
+
+           
             // Map to entity
-            Region? region = RegionMapper.ToEntity(createRegionRequest);
+            Region? region = _mapper.Map<Region>(createRegionRequest);
 
             // Save to db
-            _dbContext.Regions.Add(region);
-            _dbContext.SaveChanges();
-
-            // Map to response
-            RegionResponse regionResponse = RegionMapper.ToResponse(region);
+            region = await _regionRepository.Create(region);
 
             return CreatedAtAction(
                 // tạo Location trong Response Headers.
@@ -75,33 +98,35 @@ namespace NZWalks.API.Controllers
                 new { id = region.Id},
 
                 // Response Body
-                regionResponse);
+                _mapper.Map<RegionResponse>(region)
+            );
         }
 
         // UPDATE REGION
         // PUT https://localhost:portnumber/api/regions/{id}
         [HttpPut]
         [Route("{id:Guid}")]
-        public IActionResult Update([FromBody] UpdateRegionRequest updateRegionRequest,
-                                    [FromRoute] Guid id)
+        [ValidateModel]
+        [Authorize(Roles = "Writer")]
+        public async Task<IActionResult> Update(
+            [FromBody] UpdateRegionRequest updateRegionRequest,
+            [FromRoute] Guid id)
         {
+            
+            // Map to entity and update
+            var region = _mapper.Map<Region>(updateRegionRequest);
+
+            // Save to database
+            Region? regionUpdated = await _regionRepository.Update(region, id);
+
             // Check if region exists
-            Region? regionFound = _dbContext.Regions.Find(id);
-            if (regionFound == null) {
+            if (regionUpdated == null)
+            {
                 return NotFound();
             }
 
-
-            // Map to entity and update
-            regionFound.Code = updateRegionRequest.Code;
-            regionFound.Name = updateRegionRequest.Name;
-            regionFound.RegionImageUrl = updateRegionRequest.RegionImageUrl;
-
-            // Save to database
-            _dbContext.SaveChanges();
-
             return Ok( 
-                RegionMapper.ToResponse(regionFound) 
+                _mapper.Map<RegionResponse>(regionUpdated)
             );
         }
 
@@ -109,21 +134,18 @@ namespace NZWalks.API.Controllers
         // DELETE https://localhost:portnumber/api/regions/{id}
         [HttpDelete]
         [Route("{id:Guid}")]
-        public IActionResult Delete([FromRoute] Guid id)
+        [Authorize(Roles = "Writer, Reader")]
+        public async Task<IActionResult> Delete([FromRoute] Guid id)
         {
-            // Check if region exists
-            Region? regionFound = _dbContext.Regions.Find(id);
+            Region? regionDeleted = await _regionRepository.Delete(id);
 
-            if (regionFound == null) {
+            if (regionDeleted == null)
+            {
                 return NotFound();
             }
 
-            // Delete region
-            _dbContext.Regions.Remove(regionFound);
-            _dbContext.SaveChanges();
-
             return Ok(
-                RegionMapper.ToResponse(regionFound)
+                _mapper.Map<RegionResponse>(regionDeleted)
             );
         }
     }

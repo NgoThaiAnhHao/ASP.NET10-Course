@@ -1,0 +1,12 @@
+2026-09-15 03:08:19.795 +07:00 [INF] Request starting HTTP/2 POST https://localhost:7121/api/Auth/Login - application/json 60
+2026-09-15 03:08:19.818 +07:00 [INF] Executing endpoint 'NZWalks.API.Controllers.AuthController.Login (NZWalks.API)'
+2026-09-15 03:08:19.835 +07:00 [INF] Route matched with {action = "Login", controller = "Auth"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Login(NZWalks.API.Models.DTO.Auth.LoginRequest) on controller NZWalks.API.Controllers.AuthController (NZWalks.API).
+2026-09-15 03:08:20.462 +07:00 [INF] Executed DbCommand (14ms) [Parameters=[@__normalizedEmail_0='?'], CommandType='"Text"', CommandTimeout='30']
+SELECT a."Id", a."AccessFailedCount", a."ConcurrencyStamp", a."Email", a."EmailConfirmed", a."LockoutEnabled", a."LockoutEnd", a."NormalizedEmail", a."NormalizedUserName", a."PasswordHash", a."PhoneNumber", a."PhoneNumberConfirmed", a."SecurityStamp", a."TwoFactorEnabled", a."UserName"
+FROM "AspNetUsers" AS a
+WHERE a."NormalizedEmail" = @__normalizedEmail_0
+LIMIT 2
+2026-09-15 03:08:20.493 +07:00 [INF] Executing BadRequestObjectResult, writing value of type 'System.String'.
+2026-09-15 03:08:20.500 +07:00 [INF] Executed action NZWalks.API.Controllers.AuthController.Login (NZWalks.API) in 658.7558ms
+2026-09-15 03:08:20.503 +07:00 [INF] Executed endpoint 'NZWalks.API.Controllers.AuthController.Login (NZWalks.API)'
+2026-09-15 03:08:20.508 +07:00 [INF] Request finished HTTP/2 POST https://localhost:7121/api/Auth/Login - 400 null text/plain; charset=utf-8 713.9788ms
