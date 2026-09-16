@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="../NZWalks.API/NZWalks.API.csproj" />
+  <Project Path="NZWalks.UI.csproj" />
+</Solution>

@@ -17,3 +17,6 @@ Serilog
 Serilog.AspNetCore
 Serilog.Sinks.Console
 Serilog.Sinks.File (Add logging to Text File)
+
+- Implement Versioning
+Microsoft.AspNetCore.Mvc.Versioning
